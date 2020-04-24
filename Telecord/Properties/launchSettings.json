@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Telecord": {
+      "commandName": "Project",
+      "commandLineArgs": "--environment Development"
+    }
+  }
+}

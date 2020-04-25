@@ -27,9 +27,9 @@ namespace Telecord
             var message = new TelegramMessage(_message.Author.Username);
             HtmlVisitor.Convert(discord, _parser.Parse(_message.Content), message);
 
-            var image = _message.Attachments.SingleOrDefault();
-            if (image != null)
-                message.SetPhoto(image.Url);
+            var att = _message.Attachments.SingleOrDefault();
+            if (att != null)
+                message.AppendUrl(att.Url);
 
             return message;
         }

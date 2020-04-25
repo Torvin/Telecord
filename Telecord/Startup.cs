@@ -19,8 +19,7 @@ namespace Telecord
 
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddControllers();
-
+            services.AddSingleton<TelegramUrlService>();
             services.AddHostedService<Bot>();
 
             services.AddOptions<Tokens>()
@@ -38,6 +37,14 @@ namespace Telecord
                     if (options.DiscordChannelId == 0 || options.TelegramChatId == 0)
                         throw new InvalidOperationException("Chat options were not provided.");
                 });
+
+            services.AddOptions<WebHostingOptions>()
+                .Bind(Configuration.GetSection("WebHosting"))
+                .PostConfigure(options =>
+                {
+                    if (options.RootUrl == null || options.SigningKey == null)
+                        throw new InvalidOperationException("Web hosting options were not provided.");
+                });
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
@@ -49,14 +56,7 @@ namespace Telecord
 
             app.UseHttpsRedirection();
 
-            app.UseRouting();
-
-            app.UseAuthorization();
-
-            app.UseEndpoints(endpoints =>
-            {
-                endpoints.MapControllers();
-            });
+            app.Map("/file", app => app.UseMiddleware<TelegramFileMiddleware>());
         }
     }
 }

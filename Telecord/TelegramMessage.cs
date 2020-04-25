@@ -29,6 +29,13 @@ namespace Telecord
             _plainTextLen = plainTextLen;
         }
 
+        public void AppendUrl(string url)
+        {
+            if (_text.Length > 0 && !_text.EndsWith("\n"))
+                _text += "\n";
+            _text += url;
+        }
+
         public void SetPhoto(string url)
         {
             _url = url;

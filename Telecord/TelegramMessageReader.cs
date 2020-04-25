@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using Discord;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
@@ -12,6 +11,8 @@ namespace Telecord
 {
     public class TelegramMessageReader
     {
+        public delegate string GetFileUrl(string fileId, string mimeType = null, string fileName = null);
+
         private static readonly Dictionary<MessageEntityType, string> Tags = new Dictionary<MessageEntityType, string>
         {
             [MessageEntityType.Bold] = "**",
@@ -44,7 +45,7 @@ namespace Telecord
             _message = message;
         }
 
-        public async Task<(string text, Embed embed)> Read(Func<string, Task<string>> getFileUrl)
+        public (string text, Embed embed) Read(GetFileUrl getFileUrl)
         {
             var text = ReadText() ?? "";
 
@@ -56,30 +57,52 @@ namespace Telecord
                 var photo = photos.FirstOrDefault(p => p.Width == 800) ?? photos[0];
 
                 embed = new EmbedBuilder()
-                    .WithImageUrl(await getFileUrl(photo.FileId))
+                    .WithImageUrl(getFileUrl(photo.FileId))
                     .Build();
             }
             else if (_message.Sticker != null)
             {
-                embed = new EmbedBuilder()
-                    .WithImageUrl(await getFileUrl(_message.Sticker.FileId))
-                    .Build();
+                if (_message.Sticker.IsAnimated)
+                {
+                    text += @"\<animated sticker\>";
+                }
+                else
+                {
+                    embed = new EmbedBuilder()
+                        .WithImageUrl(getFileUrl(_message.Sticker.FileId))
+                        .Build();
+                }
             }
             else if (_message.Animation != null)
             {
-                text += await getFileUrl(_message.Animation.FileId);
+                text += "GIF: " + getFileUrl(_message.Animation.FileId);
             }
             else if (_message.Voice != null)
             {
-                text += await getFileUrl(_message.Voice.FileId);
+                text += "Audio: " + getFileUrl(_message.Voice.FileId);
+            }
+            else if (_message.VideoNote != null)
+            {
+                text += "Video: " + getFileUrl(_message.VideoNote.FileId);
+            }
+            else if (_message.Document != null)
+            {
+                var doc = _message.Document;
+                text += "File " + EscapeDiscord(doc.FileName) + " " + getFileUrl(doc.FileId, doc.MimeType, doc.FileName);
             }
 
-            var message = $"**{_message.From.Username}**:";
-            message += text.Contains('\n') ? "\n" : " ";
+            var message = $"**{EscapeDiscord(_message.From.Username)}**:";
+            message += text.Contains('\n') || text.Length > 50 ? "\n" : " ";
             message += text;
 
             return (message, embed);
         }
+
+        private static string EscapeDiscord(ReadOnlySpan<char> str)
+        {
+            return EscapeRegex.Replace(str.ToString(), @"\$1");
+        }
+
 
         public string ReadText()
         {
@@ -175,7 +198,7 @@ namespace Telecord
                     }
                 }
 
-                writer.Text(EscapeRegex.Replace(str.ToString(), @"\$1"));
+                writer.Text(EscapeDiscord(str));
             }
 
             static bool Tag(MessageEntityType type, Action<string> append)

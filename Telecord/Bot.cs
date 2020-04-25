@@ -20,16 +20,18 @@ namespace Telecord
         private readonly Tokens _tokens;
         private readonly ChatOptions _chatOptions;
         private readonly ILogger<Bot> _logger;
+        private readonly TelegramUrlService _urlService;
 
         private readonly TelegramBotClient _telegram;
         private readonly DiscordSocketClient _discord = new DiscordSocketClient();
         private readonly Func<Task> EnsureDiscordConnected;
 
-        public Bot(IOptions<Tokens> tokens, IOptions<ChatOptions> chatOptions, ILogger<Bot> logger)
+        public Bot(IOptions<Tokens> tokens, IOptions<ChatOptions> chatOptions, ILogger<Bot> logger, TelegramUrlService urlService)
         {
             _tokens = tokens.Value;
             _chatOptions = chatOptions.Value;
             _logger = logger;
+            _urlService = urlService;
 
             _telegram = new TelegramBotClient(_tokens.Telegram);
 
@@ -73,7 +75,7 @@ namespace Telecord
                 if (e.Message.Chat.Id != _chatOptions.TelegramChatId) return; // ignore DMs for now
                 _logger.LogDebug($"sending #{e.Message.MessageId} to discord from {e.Message.From.Username}");
 
-                var (text, embed) = await new TelegramMessageReader(e.Message).Read(GetFileUrl);
+                var (text, embed) = new TelegramMessageReader(e.Message).Read(GetFileUrl);
 
                 await GetDiscordChannel().SendMessageAsync(text, embed: embed);
             }
@@ -126,10 +128,7 @@ namespace Telecord
             }
         }
 
-        private async Task<string> GetFileUrl(string fileId)
-        {
-            var file = await _telegram.GetFileAsync(fileId);
-            return $"https://api.telegram.org/file/bot{_tokens.Telegram}/{file.FilePath}";
-        }
+        private string GetFileUrl(string fileId, string mimeType = null, string fileName = null)
+            => _urlService.CreateUrl(fileId, mimeType, fileName).OriginalString;
     }
 }

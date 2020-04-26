@@ -17,7 +17,7 @@ namespace DiscordParser
                 .ToArray();
         }
 
-        public Node Parse(string text)
+        public virtual Node Parse(string text)
         {
             return Parse(text, default);
         }

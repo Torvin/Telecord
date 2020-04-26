@@ -49,7 +49,11 @@ namespace DiscordParser
                 {
                     var regex = BlockQuoteTriple.IsMatch(state.LastMatch.Value) ? BlockQuoteTriple : BlockQuoteSingular;
                     var quote = regex.Replace(state.LastMatch.Value, "");
+
                     state.InQuote = true;
+                    if (regex == BlockQuoteTriple)
+                        state.Inline = true;
+
                     var parsed = parser.Parse(quote, state);
                     return parsed != null ? new StyleNode(Style.BlockQuote, parsed) : (Node)new TextNode(" ");
                 },
@@ -236,12 +240,17 @@ namespace DiscordParser
         {
         }
 
+        public override Node Parse(string text)
+        {
+            return base.Parse(text, new DiscordParserState { Inline = true });
+        }
+
         class Rule : Rule<DiscordParserState>
         {
             public Rule(Regex regex)
             {
                 base.Match = (text, parser, state) =>
-                    Block == null || Block == (state.LastMatch?.Value.EndsWith("\n") ?? false)
+                    Block == null || Block == !state.Inline
                         ? Match(text, (DiscordParser)parser, state, str => regex.Match(str))
                         : null;
 
@@ -257,6 +266,7 @@ namespace DiscordParser
     public struct DiscordParserState : IParserState
     {
         public Match LastMatch { get; set; }
+        public bool Inline { get; set; }
         public bool InQuote { get; set; }
         public bool Nested { get; set; }
         public int Style { get; set; }

@@ -111,6 +111,13 @@ namespace DiscordParser.Tests
             Test("> text\n> \n> here", "<blockquote>text\n\nhere</blockquote>");
         }
 
+        [Fact]
+        public void BoldInQuote()
+        {
+            Test("> **bold**\nend", "<blockquote><strong>bold</strong>\n</blockquote>end");
+            Test(">>> **bold**\nend", "<blockquote><strong>bold</strong>\nend</blockquote>");
+        }
+
         [Fact(DisplayName = "Don't drop arms")]
         public void Kaomoji()
         {
@@ -130,8 +137,8 @@ namespace DiscordParser.Tests
             Test("<b>test</b>", "&lt;b&gt;test&lt;/b&gt;");
         }
 
-        [Fact(DisplayName = "Unmatched back quote")]
-        public void UnmatchedBackQuote()
+        [Fact(DisplayName = "Unmatched backtick")]
+        public void UnmatchedBactick()
         {
             Test("`Inline `code` with extra marker", "<code>Inline </code>code` with extra marker");
         }
@@ -149,7 +156,7 @@ namespace DiscordParser.Tests
         }
 
         [Fact(DisplayName = "Inline code with ` inside")]
-        public void DoubleBackQuotes()
+        public void DoubleBackticks()
         {
             Test(@"``function test() { return ""`"" }``", "<code>function test() { return \"`\" }</code>");
         }

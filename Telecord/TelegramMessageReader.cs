@@ -129,7 +129,7 @@ namespace Telecord
 
         private string QuoteReply()
         {
-            if (_message.ReplyToMessage == null) return null;
+            if (_message.ReplyToMessage?.Text == null) return null;
 
             var text = _message.ReplyToMessage.Text;
 

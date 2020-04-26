@@ -180,13 +180,15 @@ namespace Telecord
             var stack = new Stack<MessageEntity>();
             var writer = new MessageWriter();
 
-            var entities = (message.Entities ?? new MessageEntity[0])
+            var entities = message.Entities ?? message.CaptionEntities ?? new MessageEntity[0];
+            entities = entities
                 .OrderBy(e => e.Offset)
                 .ThenByDescending(e => e.Offset + e.Length)
-                .ThenBy(e => Array.IndexOf(message.Entities, e));
+                .ThenBy(e => Array.IndexOf(entities, e))
+                .ToArray();
 
             var offset = 0;
-            var text = message.Text.AsSpan();
+            var text = (message.Text ?? message.Caption).AsSpan();
 
             foreach (var entity in entities)
             {

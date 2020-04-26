@@ -132,9 +132,7 @@ namespace Telecord
             if (_message.ReplyToMessage?.Text == null) return null;
 
             var text = _message.ReplyToMessage.Text;
-
             var entities = _message.ReplyToMessage.Entities ?? new MessageEntity[0];
-
             var start = 0;
 
             // skip username
@@ -157,6 +155,12 @@ namespace Telecord
             var end = text.IndexOf('\n', start);
             if (end == -1)
                 end = text.Length;
+
+            if (end - start > 50)
+            {
+                end = start + 50;
+                text = text[..(end - 3)] + "...";
+            }
 
             // trim entities
             var message = new Message

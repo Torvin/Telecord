@@ -48,6 +48,7 @@ namespace Telecord
         public (string text, Embed embed) Read(GetFileUrl getFileUrl)
         {
             var text = ReadText() ?? "";
+            var quoteReply = QuoteReply();
 
             Embed embed = null;
 
@@ -92,7 +93,8 @@ namespace Telecord
             }
 
             var message = $"**{EscapeDiscord(_message.From.Username)}**:";
-            message += text.Contains('\n') || text.Length > 50 ? "\n" : " ";
+            message += text.Contains('\n') || text.Length > 50 || quoteReply != null ? "\n" : " ";
+            if (quoteReply != null) message += quoteReply + "\n";
             message += text;
 
             return (message, embed);
@@ -103,19 +105,67 @@ namespace Telecord
             return EscapeRegex.Replace(str.ToString(), @"\$1");
         }
 
-
         public string ReadText()
+        {
+            return ReadText(_message);
+        }
+
+        private string QuoteReply()
+        {
+            if (_message.ReplyToMessage == null) return null;
+
+            var text = _message.ReplyToMessage.Text;
+
+            var entities = _message.ReplyToMessage.Entities ?? new MessageEntity[0];
+
+            var start = 0;
+
+            // skip username
+            if (_message.ReplyToMessage.From.IsBot && entities.FirstOrDefault()?.Type == MessageEntityType.Bold)
+                start = GetFinish(entities[0]) + 2; // 2 for ": "
+
+            // skip pre
+            start = entities
+                .SkipWhile(e => GetFinish(e) < start)
+                .TakeWhile(e => e.Type == MessageEntityType.Pre)
+                .Select(e => (int?)GetFinish(e))
+                .OrderByDescending(x => x)
+                .FirstOrDefault() ?? start;
+
+            // skip leading enters
+            while (text[start] == '\n')
+                start++;
+
+            // take first line
+            var end = text.IndexOf('\n', start);
+            if (end == -1)
+                end = text.Length;
+
+            // trim entities
+            var message = new Message
+            {
+                Text = text[start..end],
+                Entities = entities
+                    .Where(e => e.Offset < end && e.Offset >= start)
+                    .Select(e => GetFinish(e) < end ? e : new MessageEntity { Type = e.Type, Offset = e.Offset - start, Length = end - e.Offset, Url = e.Url, User = e.User })
+                    .ToArray(),
+            };
+
+            return "> " + ReadText(message);
+        }
+
+        private static string ReadText(Message message)
         {
             var stack = new Stack<MessageEntity>();
             var writer = new MessageWriter();
 
-            var entities = (_message.Entities ?? new MessageEntity[0])
+            var entities = (message.Entities ?? new MessageEntity[0])
                 .OrderBy(e => e.Offset)
                 .ThenByDescending(e => e.Offset + e.Length)
-                .ThenBy(e => Array.IndexOf(_message.Entities, e));
+                .ThenBy(e => Array.IndexOf(message.Entities, e));
 
             var offset = 0;
-            var text = _message.Text.AsSpan();
+            var text = message.Text.AsSpan();
 
             foreach (var entity in entities)
             {
@@ -186,12 +236,14 @@ namespace Telecord
                 if (stack.Count > 0)
                 {
                     var top = stack.Peek();
+
                     if (NoEscape.Contains(top.Type))
                     {
                         writer.Text(str);
                         return;
                     }
-                    else if (EscapeBacktick.Contains(top.Type))
+
+                    if (EscapeBacktick.Contains(top.Type))
                     {
                         writer.Text(EscapeBacktickRegex.Replace(str.ToString(), "`\u200b"));
                         return;
@@ -323,7 +375,7 @@ namespace Telecord
             }
         }
 
-        private int GetFinish(MessageEntity entity)
+        private static int GetFinish(MessageEntity entity)
         {
             return entity.Offset + entity.Length;
         }

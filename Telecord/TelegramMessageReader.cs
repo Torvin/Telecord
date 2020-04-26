@@ -67,9 +67,11 @@ namespace Telecord
             {
                 var photos = _message.Photo.OrderByDescending(p => p.Width).ToArray();
                 var photo = photos.FirstOrDefault(p => p.Width == 800) ?? photos[0];
+                var url = getFileUrl(photo.FileId);
 
                 embed = new EmbedBuilder()
-                    .WithImageUrl(getFileUrl(photo.FileId))
+                    .WithImageUrl(url)
+                    .WithDescription($"[photo]({url})")
                     .Build();
             }
             else if (_message.Sticker != null)
@@ -80,8 +82,11 @@ namespace Telecord
                 }
                 else
                 {
+                    var url = getFileUrl(_message.Sticker.FileId);
+
                     embed = new EmbedBuilder()
-                        .WithImageUrl(getFileUrl(_message.Sticker.FileId))
+                        .WithImageUrl(url)
+                        .WithDescription($"[sticker]({url})")
                         .Build();
                 }
             }

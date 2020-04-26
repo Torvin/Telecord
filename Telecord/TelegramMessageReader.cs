@@ -108,7 +108,7 @@ namespace Telecord
                 text += "File " + EscapeDiscord(doc.FileName) + " " + getFileUrl(doc.FileId, null, doc.MimeType, doc.FileName);
             }
 
-            message += text.Contains('\n') || text.Length > 50 || quoteReply != null || forward != null ? "\n" : " ";
+            message += text.Contains('\n') || quoteReply != null || forward != null ? "\n" : " ";
 
             if (quoteReply != null) message += quoteReply + "\n";
             message += forward;

@@ -81,7 +81,7 @@ namespace Telecord
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex.ToString());
+                _logger.LogError(ex, $"Error sending #{e.Message.MessageId}");
 
                 if (_chatOptions.SendErrorsTo != null)
                 {
@@ -117,7 +117,7 @@ namespace Telecord
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex.ToString());
+                _logger.LogError(ex, $"Error sending #{msg.Id} from {msg.Author.Username}");
 
                 if (_chatOptions.SendErrorsTo != null)
                 {

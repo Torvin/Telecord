@@ -57,7 +57,9 @@ namespace Telecord
 
             var text = ReadText() ?? "";
             var quoteReply = QuoteReply();
-            var forward = _message.ForwardFrom == null ? null : $"**Forwarded from @{EscapeDiscord(_message.ForwardFrom.Username)}**\n";
+            var forward = _message.ForwardFrom != null ? $"**Forwarded from @{EscapeDiscord(_message.ForwardFrom.Username)}**\n"
+                : _message.ForwardSenderName != null ? $"**Forwarded from {EscapeDiscord(_message.ForwardSenderName)}**\n"
+                : null;
 
             Embed embed = null;
 

@@ -35,7 +35,7 @@ namespace Telecord
         private static readonly MessageEntityType[] NoEscape = { MessageEntityType.Url };
         private static readonly MessageEntityType[] EscapeBacktick = { MessageEntityType.Pre, MessageEntityType.Code };
 
-        private static readonly Regex EscapeRegex = new Regex(@"([^\p{Ll}\p{Lu}\p{Lt}\p{Lo}\p{Lm}\p{Nd}.,;!?\s])");
+        private static readonly Regex EscapeRegex = new Regex(@"([^\p{Ll}\p{Lu}\p{Lt}\p{Lo}\p{Lm}\p{Nd}.,;!?\s\u00FF-\uFFFF])");
         private static readonly Regex EscapeBacktickRegex = new Regex(@"`(?=`)|^`|`$");
 
         private readonly Message _message;

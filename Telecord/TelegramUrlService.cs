@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Linq;
+using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.WebUtilities;
@@ -22,15 +22,17 @@ namespace Telecord
             _logger = logger;
         }
 
-        public Uri CreateUrl(string fileId, string mimeType = null, string fileName = null)
+        public Uri CreateUrl(string fileId, string extension, string mimeType, string fileName)
         {
             var signature = GetSignature(fileId);
-            var path = $"file/{Uri.EscapeDataString(fileId)}?hash={Uri.EscapeDataString(signature)}";
+            var path = $"file/{Uri.EscapeDataString(fileId)}{extension}?hash={Uri.EscapeDataString(signature)}";
 
             if (mimeType != null)
                 path = QueryHelpers.AddQueryString(path, "type", mimeType);
             if (fileName != null)
                 path = QueryHelpers.AddQueryString(path, "name", fileName);
+
+            _logger.LogDebug($"created url: {path}");
 
             return new Uri(_options.RootUrl, path);
         }
@@ -48,7 +50,7 @@ namespace Telecord
                     return null;
 
                 var hash = hashValue[0];
-                var fileId = uri.Segments[^1];
+                var fileId = Path.GetFileNameWithoutExtension(uri.Segments[^1]);
 
                 return GetSignature(fileId) == hash ? fileId : null;
             }

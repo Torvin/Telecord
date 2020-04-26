@@ -128,7 +128,7 @@ namespace Telecord
             }
         }
 
-        private string GetFileUrl(string fileId, string mimeType = null, string fileName = null)
-            => _urlService.CreateUrl(fileId, mimeType, fileName).OriginalString;
+        private string GetFileUrl(string fileId, string extension = null, string mimeType = null, string fileName = null)
+            => _urlService.CreateUrl(fileId, extension, mimeType, fileName).OriginalString;
     }
 }

@@ -11,7 +11,7 @@ namespace Telecord
 {
     public class TelegramMessageReader
     {
-        public delegate string GetFileUrl(string fileId, string mimeType = null, string fileName = null);
+        public delegate string GetFileUrl(string fileId, string extension = null, string mimeType = null, string fileName = null);
 
         private static readonly Dictionary<MessageEntityType, string> Tags = new Dictionary<MessageEntityType, string>
         {
@@ -85,7 +85,7 @@ namespace Telecord
             }
             else if (_message.Animation != null)
             {
-                text += "GIF: " + getFileUrl(_message.Animation.FileId);
+                text += "GIF: " + getFileUrl(_message.Animation.FileId, ".mp4");
             }
             else if (_message.Voice != null)
             {
@@ -93,12 +93,12 @@ namespace Telecord
             }
             else if (_message.VideoNote != null)
             {
-                text += "Video: " + getFileUrl(_message.VideoNote.FileId);
+                text += "Video: " + getFileUrl(_message.VideoNote.FileId, ".mp4");
             }
             else if (_message.Document != null)
             {
                 var doc = _message.Document;
-                text += "File " + EscapeDiscord(doc.FileName) + " " + getFileUrl(doc.FileId, doc.MimeType, doc.FileName);
+                text += "File " + EscapeDiscord(doc.FileName) + " " + getFileUrl(doc.FileId, null, doc.MimeType, doc.FileName);
             }
 
             message += text.Contains('\n') || text.Length > 50 || quoteReply != null || forward != null ? "\n" : " ";

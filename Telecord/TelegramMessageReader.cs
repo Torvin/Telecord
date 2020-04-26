@@ -47,8 +47,17 @@ namespace Telecord
 
         public (string text, Embed embed) Read(GetFileUrl getFileUrl)
         {
+            var message = $"**{EscapeDiscord(_message.From.Username)}**:";
+
+            if (_message.ForwardFromChat != null)
+            {
+                message += $" https://t.me/{_message.ForwardFromChat.Username}/{_message.ForwardFromMessageId}";
+                return (message, null);
+            }
+
             var text = ReadText() ?? "";
             var quoteReply = QuoteReply();
+            var forward = _message.ForwardFrom == null ? null : $"**Forwarded from @{EscapeDiscord(_message.ForwardFrom.Username)}**\n";
 
             Embed embed = null;
 
@@ -92,9 +101,10 @@ namespace Telecord
                 text += "File " + EscapeDiscord(doc.FileName) + " " + getFileUrl(doc.FileId, doc.MimeType, doc.FileName);
             }
 
-            var message = $"**{EscapeDiscord(_message.From.Username)}**:";
-            message += text.Contains('\n') || text.Length > 50 || quoteReply != null ? "\n" : " ";
+            message += text.Contains('\n') || text.Length > 50 || quoteReply != null || forward != null ? "\n" : " ";
+
             if (quoteReply != null) message += quoteReply + "\n";
+            message += forward;
             message += text;
 
             return (message, embed);

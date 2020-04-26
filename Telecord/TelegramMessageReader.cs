@@ -117,7 +117,7 @@ namespace Telecord
 
         public string ReadText()
         {
-            return ReadText(_message);
+            return ReadText(_message, false);
         }
 
         private string QuoteReply()
@@ -161,10 +161,10 @@ namespace Telecord
                     .ToArray(),
             };
 
-            return "> " + ReadText(message);
+            return "> " + ReadText(message, true);
         }
 
-        private static string ReadText(Message message)
+        private static string ReadText(Message message, bool inQuote)
         {
             var stack = new Stack<MessageEntity>();
             var writer = new MessageWriter();
@@ -276,6 +276,12 @@ namespace Telecord
 
             void Start(MessageEntity entity, bool final = true)
             {
+                if (inQuote && entity.Type == MessageEntityType.Url)
+                {
+                    writer.Start("<");
+                    return;
+                }
+
                 if (Tag(entity.Type, writer.Start))
                     return;
 
@@ -294,6 +300,12 @@ namespace Telecord
 
             void End(MessageEntity entity, bool final = true)
             {
+                if (inQuote && entity.Type == MessageEntityType.Url)
+                {
+                    writer.End(">");
+                    return;
+                }
+
                 if (Tag(entity.Type, writer.End))
                     return;
 

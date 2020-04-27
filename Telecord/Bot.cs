@@ -17,6 +17,8 @@ namespace Telecord
 {
     class Bot : BackgroundService
     {
+        private const int DiscordMessageLengthLimit = 2000;
+
         private readonly Tokens _tokens;
         private readonly ChatOptions _chatOptions;
         private readonly ILogger<Bot> _logger;
@@ -25,6 +27,7 @@ namespace Telecord
         private readonly TelegramBotClient _telegram;
         private readonly DiscordSocketClient _discord = new DiscordSocketClient();
         private readonly Func<Task> EnsureDiscordConnected;
+        private readonly TelegramMessageConverter _telegramConverter;
 
         public Bot(IOptions<Tokens> tokens, IOptions<ChatOptions> chatOptions, ILogger<Bot> logger, TelegramUrlService urlService)
         {
@@ -38,6 +41,8 @@ namespace Telecord
             var discordConnected = new TaskCompletionSource<object>();
             EnsureDiscordConnected = () => discordConnected.Task;
             _discord.Connected += async () => discordConnected.TrySetResult(null);
+
+            _telegramConverter = new TelegramMessageConverter(DiscordMessageLengthLimit, GetFileUrl);
         }
 
         protected override async Task ExecuteAsync(CancellationToken ct)
@@ -75,9 +80,10 @@ namespace Telecord
                 if (e.Message.Chat.Id != _chatOptions.TelegramChatId) return; // ignore DMs for now
                 _logger.LogDebug($"sending #{e.Message.MessageId} to discord from {e.Message.From.Username}");
 
-                var (text, embed) = new TelegramMessageReader(e.Message).Read(GetFileUrl);
+                var (parts, embed) = _telegramConverter.Convert(e.Message);
 
-                await GetDiscordChannel().SendMessageAsync(text, embed: embed);
+                for (var i = 0; i < parts.Length; i++)
+                    await GetDiscordChannel().SendMessageAsync(parts[i], embed: i == 0 ? embed : null);
             }
             catch (Exception ex)
             {

@@ -1,5 +1,4 @@
-﻿using System;
-using Telegram.Bot.Types;
+﻿using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Xunit;
 
@@ -7,17 +6,10 @@ namespace Telecord.Tests
 {
     public class TelegramMessageReaderTests
     {
-        private static Expectation Expect(string text, params MessageEntity[] entities)
+        private static Expectation<string> Expect(string text, params MessageEntity[] entities)
         {
-            var message = new Message
-            {
-                Text = text,
-                Entities = entities,
-            };
-
-            var actual = new TelegramMessageReader(message).ReadText();
-
-            return new Expectation(expected => Assert.Equal(expected, actual));
+            var actual = TelegramMessageReader.Read(text, entities, false);
+            return new Expectation<string>(expected => Assert.Equal(expected, actual));
         }
 
         [Fact]

@@ -1,12 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Telecord
+﻿namespace Telecord
 {
-    static class TelegramUtils
+    public static class TelegramUtils
     {
         public static string Escape(string text)
         {

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using Discord;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 
@@ -11,8 +10,6 @@ namespace Telecord
 {
     public class TelegramMessageReader
     {
-        public delegate string GetFileUrl(string fileId, string extension = null, string mimeType = null, string fileName = null);
-
         private static readonly Dictionary<MessageEntityType, string> Tags = new Dictionary<MessageEntityType, string>
         {
             [MessageEntityType.Bold] = "**",
@@ -35,152 +32,13 @@ namespace Telecord
         private static readonly MessageEntityType[] NoEscape = { MessageEntityType.Url };
         private static readonly MessageEntityType[] EscapeBacktick = { MessageEntityType.Pre, MessageEntityType.Code };
 
-        private static readonly Regex EscapeRegex = new Regex(@"([^\p{Ll}\p{Lu}\p{Lt}\p{Lo}\p{Lm}\p{Nd}.,;!?\s\u00FF-\uFFFF])");
         private static readonly Regex EscapeBacktickRegex = new Regex(@"`(?=`)|^`|`$");
 
-        private readonly Message _message;
-
-        public TelegramMessageReader(Message message)
-        {
-            _message = message;
-        }
-
-        public (string text, Embed embed) Read(GetFileUrl getFileUrl)
-        {
-            var message = $"**{EscapeDiscord(_message.From.Username)}**:";
-
-            if (_message.ForwardFromChat != null)
-            {
-                message += $" https://t.me/{_message.ForwardFromChat.Username}/{_message.ForwardFromMessageId}";
-                return (message, null);
-            }
-
-            var text = ReadText() ?? "";
-            var quoteReply = QuoteReply();
-            var forward = _message.ForwardFrom != null ? $"**Forwarded from @{EscapeDiscord(_message.ForwardFrom.Username)}**\n"
-                : _message.ForwardSenderName != null ? $"**Forwarded from {EscapeDiscord(_message.ForwardSenderName)}**\n"
-                : null;
-
-            Embed embed = null;
-
-            if (_message.Photo != null && _message.Photo.Length > 0)
-            {
-                var photos = _message.Photo.OrderByDescending(p => p.Width).ToArray();
-                var photo = photos.FirstOrDefault(p => p.Width == 800) ?? photos[0];
-                var url = getFileUrl(photo.FileId);
-
-                embed = new EmbedBuilder()
-                    .WithImageUrl(url)
-                    .WithDescription($"[photo]({url})")
-                    .Build();
-            }
-            else if (_message.Sticker != null)
-            {
-                if (_message.Sticker.IsAnimated)
-                {
-                    text += @"\<animated sticker\>";
-                }
-                else
-                {
-                    var url = getFileUrl(_message.Sticker.FileId);
-
-                    embed = new EmbedBuilder()
-                        .WithImageUrl(url)
-                        .WithDescription($"[sticker]({url})")
-                        .Build();
-                }
-            }
-            else if (_message.Animation != null)
-            {
-                text += "GIF: " + getFileUrl(_message.Animation.FileId, ".mp4");
-            }
-            else if (_message.Voice != null)
-            {
-                text += "Audio: " + getFileUrl(_message.Voice.FileId);
-            }
-            else if (_message.VideoNote != null)
-            {
-                text += "Video: " + getFileUrl(_message.VideoNote.FileId, ".mp4");
-            }
-            else if (_message.Document != null)
-            {
-                var doc = _message.Document;
-                text += "File " + EscapeDiscord(doc.FileName) + " " + getFileUrl(doc.FileId, null, doc.MimeType, doc.FileName);
-            }
-
-            message += text.Contains('\n') || quoteReply != null || forward != null ? "\n" : " ";
-
-            if (quoteReply != null) message += quoteReply + "\n";
-            message += forward;
-            message += text;
-
-            return (message, embed);
-        }
-
-        private static string EscapeDiscord(ReadOnlySpan<char> str)
-        {
-            return EscapeRegex.Replace(str.ToString(), @"\$1");
-        }
-
-        public string ReadText()
-        {
-            return ReadText(_message, false);
-        }
-
-        private string QuoteReply()
-        {
-            if (_message.ReplyToMessage?.Text == null) return null;
-
-            var text = _message.ReplyToMessage.Text;
-            var entities = _message.ReplyToMessage.Entities ?? new MessageEntity[0];
-            var start = 0;
-
-            // skip username
-            if (_message.ReplyToMessage.From.IsBot && entities.FirstOrDefault()?.Type == MessageEntityType.Bold)
-                start = GetFinish(entities[0]) + 2; // 2 for ": "
-
-            // skip pre
-            start = entities
-                .SkipWhile(e => GetFinish(e) < start)
-                .TakeWhile(e => e.Type == MessageEntityType.Pre)
-                .Select(e => (int?)GetFinish(e))
-                .OrderByDescending(x => x)
-                .FirstOrDefault() ?? start;
-
-            // skip leading enters
-            while (text[start] == '\n')
-                start++;
-
-            // take first line
-            var end = text.IndexOf('\n', start);
-            if (end == -1)
-                end = text.Length;
-
-            if (end - start > 50)
-            {
-                end = start + 50;
-                text = text[..(end - 3)] + "...";
-            }
-
-            // trim entities
-            var message = new Message
-            {
-                Text = text[start..end],
-                Entities = entities
-                    .Where(e => e.Offset < end && e.Offset >= start)
-                    .Select(e => GetFinish(e) < end ? e : new MessageEntity { Type = e.Type, Offset = e.Offset - start, Length = end - e.Offset, Url = e.Url, User = e.User })
-                    .ToArray(),
-            };
-
-            return "> " + ReadText(message, true);
-        }
-
-        private static string ReadText(Message message, bool inQuote)
+        public static string Read(ReadOnlySpan<char> text, MessageEntity[] entities, bool disablePreview)
         {
             var stack = new Stack<MessageEntity>();
             var writer = new MessageWriter();
 
-            var entities = message.Entities ?? message.CaptionEntities ?? new MessageEntity[0];
             entities = entities
                 .OrderBy(e => e.Offset)
                 .ThenByDescending(e => e.Offset + e.Length)
@@ -188,11 +46,10 @@ namespace Telecord
                 .ToArray();
 
             var offset = 0;
-            var text = (message.Text ?? message.Caption).AsSpan();
 
             foreach (var entity in entities)
             {
-                while (stack.Count > 0 && GetFinish(stack.Peek()) <= entity.Offset)
+                while (stack.Count > 0 && stack.Peek().GetFinish() <= entity.Offset)
                     Pop(text);
 
                 if (offset < entity.Offset)
@@ -216,10 +73,10 @@ namespace Telecord
             {
                 var entity = stack.Peek();
 
-                if (offset < GetFinish(entity))
+                if (offset < entity.GetFinish())
                 {
-                    Text(text[offset..GetFinish(entity)]);
-                    offset = GetFinish(entity);
+                    Text(text[offset..entity.GetFinish()]);
+                    offset = entity.GetFinish();
                 }
 
                 stack.Pop();
@@ -273,7 +130,7 @@ namespace Telecord
                     }
                 }
 
-                writer.Text(EscapeDiscord(str));
+                writer.Text(DiscordUtils.Escape(str.ToString()));
             }
 
             static bool Tag(MessageEntityType type, Action<string> append)
@@ -289,7 +146,7 @@ namespace Telecord
 
             void Start(MessageEntity entity, bool final = true)
             {
-                if (inQuote && entity.Type == MessageEntityType.Url)
+                if (disablePreview && entity.Type == MessageEntityType.Url)
                 {
                     writer.Start("<");
                     return;
@@ -313,7 +170,7 @@ namespace Telecord
 
             void End(MessageEntity entity, bool final = true)
             {
-                if (inQuote && entity.Type == MessageEntityType.Url)
+                if (disablePreview && entity.Type == MessageEntityType.Url)
                 {
                     writer.End(">");
                     return;
@@ -408,11 +265,6 @@ namespace Telecord
 
                 return _builder.ToString();
             }
-        }
-
-        private static int GetFinish(MessageEntity entity)
-        {
-            return entity.Offset + entity.Length;
         }
 
         private static int? FindFirstNonSpace(ReadOnlySpan<char> text)

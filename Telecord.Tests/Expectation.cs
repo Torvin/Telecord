@@ -6,18 +6,26 @@ using System.Threading.Tasks;
 
 namespace Telecord.Tests
 {
-    class Expectation
+    class Expectation<T>
     {
-        private readonly Action<string> _expect;
+        private readonly Action<T> _expect;
 
-        public Expectation(Action<string> expect)
+        public Expectation(Action<T> expect)
         {
             _expect = expect;
         }
 
-        public void ToBe(string expected)
+        public void ToBe(T expected)
         {
             _expect(expected);
+        }
+    }
+
+    static class ExpectationExtensions
+    {
+        public static void ToBe<T>(this Expectation<T[]> expectation, params T[] expected)
+        {
+            expectation.ToBe(expected);
         }
     }
 }

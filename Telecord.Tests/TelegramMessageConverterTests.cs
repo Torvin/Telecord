@@ -21,9 +21,10 @@ namespace Telecord.Tests
             });
         }
 
-        private static Expectation<string[]> Expect(int maxPartLength, Message message)
+        private static Expectation<string[]> Expect(int maxPartLength, Message message, string url = null)
         {
-            var (actual, _) = new TelegramMessageConverter(maxPartLength, GetFileUrl).Convert(message);
+            var getFileUrl = url == null ? (TelegramMessageConverter.GetFileUrl)GetFileUrl : ((x, y, z, w) => url);
+            var (actual, _) = new TelegramMessageConverter(maxPartLength, getFileUrl).Convert(message);
             return new Expectation<string[]>(expected => Assert.Equal(expected, actual));
         }
 
@@ -100,6 +101,16 @@ namespace Telecord.Tests
                 From = new User { Username = "xx" },
                 Animation = new Animation(),
             }).ToBe("**xx**: GIF: URL");
+        }
+
+        [Fact]
+        public void Photo()
+        {
+            Expect(100, new Message
+            {
+                From = new User { Username = "xx" },
+                Photo = new[] { new PhotoSize() },
+            }, "http://url/").ToBe("**xx**:");
         }
     }
 }

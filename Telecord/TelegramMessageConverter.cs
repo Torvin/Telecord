@@ -130,6 +130,9 @@ namespace Telecord
                 }
             }
 
+            if (parts.Count == 0)
+                parts.Add(from);
+
             return (parts.ToArray(), embed);
         }
 

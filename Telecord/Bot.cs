@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
@@ -10,7 +9,6 @@ using Microsoft.Extensions.Options;
 using Telecord.Options;
 using Telegram.Bot;
 using Telegram.Bot.Args;
-using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 
 namespace Telecord
@@ -82,8 +80,11 @@ namespace Telecord
 
                 var (parts, embed) = _telegramConverter.Convert(e.Message);
 
-                for (var i = 0; i < parts.Length; i++)
-                    await GetDiscordChannel().SendMessageAsync(parts[i], embed: i == 0 ? embed : null);
+                foreach (var part in parts)
+                {
+                    await GetDiscordChannel().SendMessageAsync(part, embed: embed);
+                    embed = null;
+                }
             }
             catch (Exception ex)
             {

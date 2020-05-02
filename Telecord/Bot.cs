@@ -102,8 +102,26 @@ namespace Telecord
 
         private async void OnTelegramCallback(CallbackQueryEventArgs e, CancellationToken ct)
         {
-            _logger.LogDebug($"showing spoiler to {e.CallbackQuery.From.Username}");
-            await _telegram.AnswerCallbackQueryAsync(e.CallbackQuery.Id, e.CallbackQuery.Data, true, cancellationToken: ct);
+            try
+            {
+                var msg = await GetDiscordChannel().GetMessageAsync(ulong.Parse(e.CallbackQuery.Data));
+                _logger.LogDebug($"showing spoiler to {e.CallbackQuery.From.Username}");
+
+                var spoiler = new DiscordMessageReader(msg).ReadSpoiler(_discord);
+                await _telegram.AnswerCallbackQueryAsync(e.CallbackQuery.Id, spoiler, true, cancellationToken: ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error showing spoiler for #{e.CallbackQuery.Data}");
+
+                if (_chatOptions.SendErrorsTo != null)
+                {
+                    await _telegram.SendTextMessageAsync(_chatOptions.SendErrorsTo,
+                        $"Id: {e.CallbackQuery.Data}\n<pre>{TelegramUtils.Escape(ex.ToString())}</pre>",
+                        ParseMode.Html, cancellationToken: ct);
+                }
+            }
+
         }
 
         private ITextChannel GetDiscordChannel()
@@ -120,7 +138,7 @@ namespace Telecord
 
                 _logger.LogDebug($"sending #{msg.Id} to telegram from {msg.Author.Username}");
 
-                await new DiscordMessageReader(msg).Read(_discord).SendAsync(_telegram, _chatOptions.TelegramChatId, ct);
+                await new DiscordMessageReader(msg).Read(_discord).SendAsync(_telegram, _chatOptions.TelegramChatId, msg.Id, ct);
             }
             catch (Exception ex)
             {

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -14,23 +13,34 @@ namespace Telecord
     {
         private static readonly Regex SpoilerRegex = new Regex(@"\S");
 
-        private readonly SocketMessage _message;
+        private readonly IMessage _message;
         private readonly DiscordParser _parser = new DiscordParser();
 
-        public DiscordMessageReader(SocketMessage message)
+        public DiscordMessageReader(IMessage message)
         {
             _message = message;
         }
 
         public TelegramMessage Read(DiscordSocketClient discord)
         {
-            var message = new TelegramMessage(_message.Author.Username);
-            HtmlVisitor.Convert(discord, _parser.Parse(_message.Content), message);
+            var message = ReadMessage(discord);
 
             var att = _message.Attachments.SingleOrDefault();
             if (att != null)
                 message.AppendUrl(att.Url);
 
+            return message;
+        }
+
+        public string ReadSpoiler(DiscordSocketClient discord)
+        {
+            return ReadMessage(discord).Spoiler;
+        }
+
+        private TelegramMessage ReadMessage(DiscordSocketClient discord)
+        {
+            var message = new TelegramMessage(_message.Author.Username);
+            HtmlVisitor.Convert(discord, _parser.Parse(_message.Content), message);
             return message;
         }
 
@@ -59,9 +69,7 @@ namespace Telecord
             private void UpdateMessage()
             {
                 _message.SetText(_builder.ToString(), _plainTextLen);
-
-                if (_spoilerBuilder != null)
-                    _message.SetSpoiler(_spoilerBuilder.ToString());
+                _message.Spoiler = _spoilerBuilder?.ToString();
             }
 
             public override Node VisitChannel(ChannelNode channel)

@@ -15,7 +15,6 @@ namespace Telecord
         private string _text;
         private int _plainTextLen;
         private string _url;
-        private string _spoiler;
         private bool _hidePreview;
 
         public TelegramMessage(string from)
@@ -41,21 +40,18 @@ namespace Telecord
             _url = url;
         }
 
-        public void SetSpoiler(string spoiler)
-        {
-            _spoiler = spoiler;
-        }
+        public string Spoiler { get; set; }
 
         public void HidePreview()
         {
             _hidePreview = true;
         }
 
-        public async Task SendAsync(TelegramBotClient telegram, ChatId chatId, CancellationToken ct)
+        public async Task SendAsync(TelegramBotClient telegram, ChatId chatId, ulong discordMessageId, CancellationToken ct)
         {
             IReplyMarkup reply = null;
-            if (_spoiler != null)
-                reply = new InlineKeyboardMarkup(InlineKeyboardButton.WithCallbackData("Показать спойлер", _spoiler));
+            if (Spoiler != null)
+                reply = new InlineKeyboardMarkup(InlineKeyboardButton.WithCallbackData("Показать спойлер", discordMessageId.ToString()));
 
             if (_url != null)
                 await telegram.SendPhotoAsync(chatId, new InputOnlineFile(_url), GetText(), ParseMode.Html, replyMarkup: reply, cancellationToken: ct);

@@ -112,5 +112,37 @@ namespace Telecord.Tests
                 Photo = new[] { new PhotoSize() },
             }, "http://url/").ToBe("**xx**:");
         }
+
+        [Fact]
+        public void TrimQuoteWhitespace()
+        {
+            Expect(100, new Message
+            {
+                From = new User { Username = "xx" },
+                Text = "zz",
+                ReplyToMessage = new Message
+                {
+                    From = new User { Username = "yy" },
+                    Text = new string('\n', 40) + "123456789x123456789",
+                    Entities = new[] { new MessageEntity { Offset = 0, Length = 50, Type = MessageEntityType.Bold } }
+                }
+            }).ToBe("**xx**:\n> **123456789x**123456789\nzz");
+        }
+
+        [Fact]
+        public void TrimQuote()
+        {
+            Expect(100, new Message
+            {
+                From = new User { Username = "xx" },
+                Text = "zz",
+                ReplyToMessage = new Message
+                {
+                    From = new User { Username = "yy" },
+                    Text = new string('x', 40) + "123456789x123456789y123456789",
+                    Entities = new[] { new MessageEntity { Offset = 0, Length = 60, Type = MessageEntityType.Bold } }
+                }
+            }).ToBe($"**xx**:\n> **{new string('x', 40)}1234567...**\nzz");
+        }
     }
 }

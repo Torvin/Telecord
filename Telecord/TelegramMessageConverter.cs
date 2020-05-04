@@ -171,13 +171,7 @@ namespace Telecord
                 text = text[..(end - 3)] + "...";
             }
 
-            // trim entities
-            entities = entities
-                .Where(e => e.Offset < end && e.Offset >= start)
-                .Select(e => e.GetFinish() < end ? e : new MessageEntity { Type = e.Type, Offset = e.Offset - start, Length = end - e.Offset, Url = e.Url, User = e.User })
-                .ToArray();
-
-            return "> " + TelegramMessageReader.Read(text.AsSpan()[start..end], entities, true) + "\n";
+            return "> " + TelegramMessageReader.Read(text.AsSpan()[start..end], entities.Slice(start, end - start), true) + "\n";
         }
     }
 }

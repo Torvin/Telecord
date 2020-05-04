@@ -80,7 +80,12 @@ namespace Telecord
             else if (message.Document != null)
             {
                 var doc = message.Document;
-                link = "File " + DiscordUtils.Escape(doc.FileName) + " " + _getFileUrl(doc.FileId, null, doc.MimeType, doc.FileName);
+                link = "File: " + DiscordUtils.Escape(doc.FileName) + " " + _getFileUrl(doc.FileId, null, doc.MimeType, doc.FileName);
+            }
+            else if (message.Audio != null)
+            {
+                var audio = message.Audio;
+                link = "Audio: " + DiscordUtils.Escape(audio.Title) + " " + _getFileUrl(audio.FileId);
             }
 
             if (forward != null)

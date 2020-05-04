@@ -144,5 +144,17 @@ namespace Telecord.Tests
                 }
             }).ToBe($"**xx**:\n> **{new string('x', 40)}1234567...**\nzz");
         }
+
+
+        [Fact]
+        public void AudioFile()
+        {
+            Expect(100, new Message
+            {
+                From = new User { Username = "xx" },
+                Audio = new Audio { Title = "title" },
+                Text = "blabla"
+            }).ToBe("**xx**: blabla\nAudio: title URL");
+        }
     }
 }

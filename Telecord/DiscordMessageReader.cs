@@ -9,7 +9,7 @@ namespace Telecord
     using Discord.WebSocket;
     using DiscordParser;
 
-    class DiscordMessageReader
+    public class DiscordMessageReader
     {
         private static readonly Regex SpoilerRegex = new Regex(@"\S");
 
@@ -54,11 +54,12 @@ namespace Telecord
             }
 
             private readonly StringBuilder _builder = new StringBuilder();
+            private readonly StringBuilder _spoilerBuilder = new StringBuilder();
             private int _plainTextLen;
-            private StringBuilder _spoilerBuilder;
             private DiscordSocketClient _discord;
             private readonly TelegramMessage _message;
             private bool _inSpoiler;
+            private bool _hasSpoiler;
 
             public HtmlVisitor(DiscordSocketClient discord, TelegramMessage message)
             {
@@ -69,7 +70,7 @@ namespace Telecord
             private void UpdateMessage()
             {
                 _message.SetText(_builder.ToString(), _plainTextLen);
-                _message.Spoiler = _spoilerBuilder?.ToString();
+                _message.Spoiler = _hasSpoiler ? _spoilerBuilder.ToString() : null;
             }
 
             public override Node VisitChannel(ChannelNode channel)
@@ -155,8 +156,7 @@ namespace Telecord
 
             private Node VisitSpoiler(StyleNode style)
             {
-                if (_spoilerBuilder == null)
-                    _spoilerBuilder = new StringBuilder(_builder.ToString());
+                _hasSpoiler = true;
 
                 _inSpoiler = true;
                 var node = base.VisitStyle(style);
@@ -188,8 +188,7 @@ namespace Telecord
 
                 text = TelegramUtils.Escape(text).Replace("\u200b", "");
 
-                if (_spoilerBuilder != null)
-                    _spoilerBuilder.Append(text);
+                _spoilerBuilder.Append(text);
 
                 if (!_inSpoiler)
                     _builder.Append(text);

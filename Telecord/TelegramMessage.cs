@@ -8,7 +8,7 @@ using Telegram.Bot.Types.ReplyMarkups;
 
 namespace Telecord
 {
-    class TelegramMessage
+    public class TelegramMessage
     {
         private readonly string _from;
 

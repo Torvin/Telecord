@@ -145,6 +145,21 @@ namespace Telecord.Tests
             }).ToBe($"**xx**:\n> **{new string('x', 40)}1234567...**\nzz");
         }
 
+        [Fact]
+        public void PreQuote()
+        {
+            Expect(100, new Message
+            {
+                From = new User { Username = "xx" },
+                Text = "zz",
+                ReplyToMessage = new Message
+                {
+                    From = new User { Username = "yy" },
+                    Text = "pre only",
+                    Entities = new[] { new MessageEntity { Length = 8, Type = MessageEntityType.Pre } }
+                }
+            }).ToBe($"**xx**:\n> ```pre only```\nzz");
+        }
 
         [Fact]
         public void AudioFile()

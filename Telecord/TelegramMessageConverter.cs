@@ -154,12 +154,16 @@ namespace Telecord
                 start = entities[0].GetFinish() + 2; // 2 for ": "
 
             // skip pre
-            start = entities
+            var skipPre = entities
                 .SkipWhile(e => e.GetFinish() < start)
                 .TakeWhile(e => e.Type == MessageEntityType.Pre)
                 .Select(e => (int?)e.GetFinish())
                 .OrderByDescending(x => x)
                 .FirstOrDefault() ?? start;
+
+            // only skip pre if there's something after it
+            if (skipPre < text.Length)
+                start = skipPre;
 
             // skip leading enters
             while (text[start] == '\n')

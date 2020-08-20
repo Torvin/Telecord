@@ -25,8 +25,7 @@ namespace Telecord
         {
             var message = ReadMessage(discord);
 
-            var att = _message.Attachments.SingleOrDefault();
-            if (att != null)
+            foreach (var att in _message.Attachments)
                 message.AppendUrl(att.Url);
 
             return message;

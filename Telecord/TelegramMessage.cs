@@ -30,8 +30,11 @@ namespace Telecord
 
         public void AppendUrl(string url)
         {
-            if (_text.Length > 0 && !_text.EndsWith("\n"))
-                _text += "\n";
+            _text.TrimEnd();
+
+            if (_text.Length > 0)
+                _text += "\n\n";
+
             _text += url;
         }
 

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
@@ -9,6 +10,8 @@ using Microsoft.Extensions.Options;
 using Telecord.Options;
 using Telegram.Bot;
 using Telegram.Bot.Args;
+using Telegram.Bot.Exceptions;
+using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 
 namespace Telecord
@@ -26,6 +29,8 @@ namespace Telecord
         private readonly DiscordSocketClient _discord = new DiscordSocketClient();
         private readonly Func<Task> EnsureDiscordConnected;
         private readonly TelegramMessageConverter _telegramConverter;
+
+        private string _telegramBotName;
 
         public Bot(IOptions<Tokens> tokens, IOptions<ChatOptions> chatOptions, ILogger<Bot> logger, TelegramUrlService urlService)
         {
@@ -51,10 +56,13 @@ namespace Telecord
 
             _logger.LogDebug("Connecting");
 
+            var getMe = _telegram.GetMeAsync();
+
             await _discord.LoginAsync(TokenType.Bot, _tokens.Discord);
             await _discord.StartAsync();
             await EnsureDiscordConnected();
 
+            _telegramBotName = (await getMe).Username;
             _telegram.StartReceiving(null, ct);
 
             try
@@ -75,7 +83,13 @@ namespace Telecord
         {
             try
             {
-                if (e.Message.Chat.Id != _chatOptions.TelegramChatId) return; // ignore DMs for now
+                if (e.Message.Chat.Type == ChatType.Private)
+                {
+                    await OnTelegramDm(e.Message, ct);
+                    return;
+                }
+
+                if (e.Message.Chat.Id != _chatOptions.TelegramChatId) return; // ignore unknown chats
                 _logger.LogDebug($"sending #{e.Message.MessageId} to discord from {e.Message.From.Username}");
 
                 var (parts, embed) = _telegramConverter.Convert(e.Message);
@@ -104,11 +118,27 @@ namespace Telecord
         {
             try
             {
-                var msg = await GetDiscordChannel().GetMessageAsync(ulong.Parse(e.CallbackQuery.Data));
-                _logger.LogDebug($"showing spoiler to {e.CallbackQuery.From.Username}");
+                var spoilerId = e.CallbackQuery.Data;
+                var (dmsg, text) = await ReadSpoiler(spoilerId);
 
-                var spoiler = new DiscordMessageReader(msg).ReadSpoiler(_discord);
-                await _telegram.AnswerCallbackQueryAsync(e.CallbackQuery.Id, spoiler, true, cancellationToken: ct);
+                if (text.Length > 200)
+                {
+                    try
+                    {
+                        _logger.LogDebug($"sending spoiler {spoilerId} to {e.CallbackQuery.From.Username} via DM");
+                        await SendSpoilerAsDm(e.CallbackQuery.From.Id, dmsg, text, ct);
+                    }
+                    catch (ChatNotInitiatedException)
+                    {
+                        _logger.LogDebug($"user {e.CallbackQuery.From.Username} hasn't started the conversation yet, deeplinking instead");
+                    }
+                    await _telegram.AnswerCallbackQueryAsync(e.CallbackQuery.Id, url: $"t.me/{_telegramBotName}?start={spoilerId}", cancellationToken: ct);
+                }
+                else
+                {
+                    _logger.LogDebug($"showing spoiler {spoilerId} to {e.CallbackQuery.From.Username}");
+                    await _telegram.AnswerCallbackQueryAsync(e.CallbackQuery.Id, text, true, cancellationToken: ct);
+                }
             }
             catch (Exception ex)
             {
@@ -121,7 +151,42 @@ namespace Telecord
                         ParseMode.Html, cancellationToken: ct);
                 }
             }
+        }
 
+        private async Task OnTelegramDm(Message msg, CancellationToken ct)
+        {
+            _logger.LogDebug($"`{msg.Text}` from {msg.From.Username}");
+
+            if (!TryParseStartSpoiler(msg.Text, out var id)) { return; }
+            _logger.LogDebug($"showing spoiler {id} to {msg.From.Username} from /start");
+
+            var (dmsg, text) = await ReadSpoiler(id);
+            await SendSpoilerAsDm(msg.Chat.Id, dmsg, text, ct);
+        }
+
+        private static readonly Regex ReadSpoilerRegex = new Regex(@"^/start (\d+)$");
+        public static bool TryParseStartSpoiler(string startPayload, out string result)
+        {
+            var match = ReadSpoilerRegex.Match(startPayload);
+            if (!match.Success)
+            {
+                result = null;
+                return false;
+            }
+
+            result = match.Groups[1].Value;
+            return true;
+        }
+
+        private async Task SendSpoilerAsDm(ChatId chatId, IMessage dmsg, string text, CancellationToken ct)
+        {
+            await _telegram.SendTextMessageAsync(chatId, $"<b>{dmsg.Author.Username}</b>:\n{text}", ParseMode.Html, cancellationToken: ct);
+        }
+
+        private async Task<(IMessage, string)> ReadSpoiler(string id)
+        {
+            var msg = await GetDiscordChannel().GetMessageAsync(ulong.Parse(id));
+            return (msg, new DiscordMessageReader(msg).ReadSpoiler(_discord));
         }
 
         private ITextChannel GetDiscordChannel()

@@ -26,7 +26,7 @@ namespace Telecord
         private readonly TelegramUrlService _urlService;
 
         private readonly TelegramBotClient _telegram;
-        private readonly DiscordSocketClient _discord = new DiscordSocketClient();
+        private readonly DiscordSocketClient _discord = new DiscordSocketClient(new DiscordSocketConfig { AlwaysDownloadUsers = true });
         private readonly Func<Task> EnsureDiscordConnected;
         private readonly TelegramMessageConverter _telegramConverter;
 
@@ -43,7 +43,7 @@ namespace Telecord
 
             var discordConnected = new TaskCompletionSource<object>();
             EnsureDiscordConnected = () => discordConnected.Task;
-            _discord.Connected += async () => discordConnected.TrySetResult(null);
+            _discord.Ready += async () => discordConnected.TrySetResult(null);
 
             _telegramConverter = new TelegramMessageConverter(DiscordMessageLengthLimit, GetFileUrl);
         }

@@ -106,7 +106,7 @@ namespace Telecord
             public override Node VisitMention(MentionNode mention)
             {
                 var id =
-                    mention.Id.HasValue ? _discord.GetUser(mention.Id.Value).Username :
+                    mention.Id.HasValue ? (_discord.GetUser(mention.Id.Value)?.Username ?? mention.Id.Value.ToString()) :
                     mention.Special == SpecialMention.Everyone ? "everyone" :
                     mention.Special == SpecialMention.Here ? "here" :
                     throw new ArgumentOutOfRangeException("Unknown mention: " + mention.Special);

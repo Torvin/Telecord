@@ -22,7 +22,7 @@ namespace Telecord
 
         public (string[] text, Embed embed) Convert(Message message)
         {
-            var from = $"**{DiscordUtils.Escape(message.From.Username)}**:";
+            var from = $"**{DiscordUtils.Escape(message.From.GetName())}**:";
 
             if (message.ForwardFromChat != null)
             {
@@ -31,7 +31,7 @@ namespace Telecord
             }
 
             var quoteReply = QuoteReply(message.ReplyToMessage);
-            var forward = message.ForwardFrom != null ? $"**Forwarded from @{DiscordUtils.Escape(message.ForwardFrom.Username)}**"
+            var forward = message.ForwardFrom != null ? $"**Forwarded from @{DiscordUtils.Escape(message.ForwardFrom.GetName())}**"
                 : message.ForwardSenderName != null ? $"**Forwarded from {DiscordUtils.Escape(message.ForwardSenderName)}**"
                 : null;
 

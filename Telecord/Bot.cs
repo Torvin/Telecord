@@ -90,7 +90,7 @@ namespace Telecord
                 }
 
                 if (e.Message.Chat.Id != _chatOptions.TelegramChatId) return; // ignore unknown chats
-                _logger.LogDebug($"sending #{e.Message.MessageId} to discord from {e.Message.From.Username}");
+                _logger.LogDebug($"sending #{e.Message.MessageId} to discord from {e.Message.From.GetName()}");
 
                 var (parts, embed) = _telegramConverter.Convert(e.Message);
 
@@ -125,18 +125,18 @@ namespace Telecord
                 {
                     try
                     {
-                        _logger.LogDebug($"sending spoiler {spoilerId} to {e.CallbackQuery.From.Username} via DM");
+                        _logger.LogDebug($"sending spoiler {spoilerId} to {e.CallbackQuery.From.GetName()} via DM");
                         await SendSpoilerAsDm(e.CallbackQuery.From.Id, dmsg, text, ct);
                     }
                     catch (ChatNotInitiatedException)
                     {
-                        _logger.LogDebug($"user {e.CallbackQuery.From.Username} hasn't started the conversation yet, deeplinking instead");
+                        _logger.LogDebug($"user {e.CallbackQuery.From.GetName()} hasn't started the conversation yet, deeplinking instead");
                     }
                     await _telegram.AnswerCallbackQueryAsync(e.CallbackQuery.Id, url: $"t.me/{_telegramBotName}?start={spoilerId}", cancellationToken: ct);
                 }
                 else
                 {
-                    _logger.LogDebug($"showing spoiler {spoilerId} to {e.CallbackQuery.From.Username}");
+                    _logger.LogDebug($"showing spoiler {spoilerId} to {e.CallbackQuery.From.GetName()}");
                     await _telegram.AnswerCallbackQueryAsync(e.CallbackQuery.Id, text, true, cancellationToken: ct);
                 }
             }
@@ -155,10 +155,10 @@ namespace Telecord
 
         private async Task OnTelegramDm(Message msg, CancellationToken ct)
         {
-            _logger.LogDebug($"`{msg.Text}` from {msg.From.Username}");
+            _logger.LogDebug($"`{msg.Text}` from {msg.From.GetName()}");
 
             if (!TryParseStartSpoiler(msg.Text, out var id)) { return; }
-            _logger.LogDebug($"showing spoiler {id} to {msg.From.Username} from /start");
+            _logger.LogDebug($"showing spoiler {id} to {msg.From.GetName()} from /start");
 
             var (dmsg, text) = await ReadSpoiler(id);
             await SendSpoilerAsDm(msg.Chat.Id, dmsg, text, ct);

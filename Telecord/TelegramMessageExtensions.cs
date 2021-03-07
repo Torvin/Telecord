@@ -45,5 +45,13 @@ namespace Telecord
         {
             return (message.Text ?? message.Caption, message.Entities ?? message.CaptionEntities ?? new MessageEntity[0]);
         }
+
+        public static string GetName(this User user)
+        {
+            if (user.Username != null)
+                return user.Username;
+
+            return $"{user.FirstName} {user.LastName}";
+        }
     }
 }

@@ -62,7 +62,7 @@ namespace Telecord
                 await telegram.SendTextMessageAsync(chatId, GetText(), ParseMode.Html, disableWebPagePreview: _hidePreview, replyMarkup: reply, cancellationToken: ct);
         }
 
-        private string GetText()
+        public string GetText()
         {
             var text = $"<b>{_from}</b>:";
             text += _text.Contains("\n") || _plainTextLen + _from.Length + 2 >= 60 ? "\n" : " ";

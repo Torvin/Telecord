@@ -28,6 +28,18 @@ namespace Telecord.Tests
             TestSpoiler("> В мусульманских группах в социальных сетях появились призывы найти и наказать Илью Мэддисона, в том числе от сторонников ИГИЛ[33].\n||Наконец-то ИГИЛ сделал что-то хорошее.||")
                 .ToBe("В мусульманских группах в социальных сетях появились призывы найти и наказать Илью Мэддисона, в том числе от сторонников ИГИЛ[33].\nНаконец-то ИГИЛ сделал что-то хорошее.");
         }
+
+        [Fact]
+        public void LinkWithQuotes()
+        {
+            var message = new DiscordMessageReader(new MockMessage
+            {
+                Author = new MockUser { Username = "xx" },
+                Content = "Ссылка: <https://en.wikipedia.org/wiki/Special:Search/suicide_incategory:\"Transgender_and_transsexual_men\">",
+            }).Read(null);
+
+            Assert.Equal("<b>xx</b>:\nСсылка: <a href=\"https://en.wikipedia.org/wiki/Special:Search/suicide_incategory:%22Transgender_and_transsexual_men%22\">https://en.wikipedia.org/wiki/Special:Search/suicide_incategory:\"Transgender_and_transsexual_men\"</a>", message.GetText());
+        }
     }
 
     class MockMessage : IMessage

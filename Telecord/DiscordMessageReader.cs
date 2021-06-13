@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Linq;
+using Discord;
+using Discord.WebSocket;
 
 namespace Telecord
 {
-    using System.Linq;
-    using Discord;
-    using Discord.WebSocket;
     using DiscordParser;
 
     public class DiscordMessageReader
@@ -100,7 +100,7 @@ namespace Telecord
             {
                 if (link.HidePreview)
                     _message.HidePreview();
-                return Visit(() => base.VisitLink(link), $"<a href=\"{link.Url}\">", "</a>");
+                return Visit(() => base.VisitLink(link), $"<a href=\"{link.Url.Replace("\"", "%22")}\">", "</a>");
             }
 
             public override Node VisitMention(MentionNode mention)

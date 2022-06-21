@@ -112,14 +112,7 @@ namespace Telecord
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error sending #{e?.Message.MessageId}");
-
-                if (_chatOptions.SendErrorsTo != null)
-                {
-                    await _telegram.SendTextMessageAsync(_chatOptions.SendErrorsTo,
-                        $"Id: {e.Message.MessageId}\n<pre>{TelegramUtils.Escape(ex.ToString())}</pre>",
-                        ParseMode.Html, cancellationToken: ct);
-                    await _telegram.ForwardMessageAsync(_chatOptions.SendErrorsTo, _chatOptions.TelegramChatId, e.Message.MessageId, false, false, ct);
-                }
+                await ReportError($"Id: {e.Message.MessageId}\n<pre>{TelegramUtils.Escape(ex.ToString())}</pre>", e.Message.MessageId, ct);
             }
         }
 
@@ -157,13 +150,7 @@ namespace Telecord
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error showing spoiler for #{query.Data}");
-
-                if (_chatOptions.SendErrorsTo != null)
-                {
-                    await _telegram.SendTextMessageAsync(_chatOptions.SendErrorsTo,
-                        $"Id: {query.Data}\n<pre>{TelegramUtils.Escape(ex.ToString())}</pre>",
-                        ParseMode.Html, cancellationToken: ct);
-                }
+                await ReportError($"Id: {query.Data}\n<pre>{TelegramUtils.Escape(ex.ToString())}</pre>", ct);
             }
         }
 
@@ -222,13 +209,25 @@ namespace Telecord
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error sending #{msg.Id} from {msg.Author.Username}");
+                await ReportError($"Id: {msg.Id}\nFrom: {msg.Author.Username}\n<pre>{TelegramUtils.Escape(msg.Content)}</pre>\n\n<pre>{TelegramUtils.Escape(ex.ToString())}</pre>", ct);
+            }
+        }
 
-                if (_chatOptions.SendErrorsTo != null)
-                {
-                    await _telegram.SendTextMessageAsync(_chatOptions.SendErrorsTo,
-                        $"Id: {msg.Id}\nFrom: {msg.Author.Username}\n<pre>{TelegramUtils.Escape(msg.Content)}</pre>\n\n<pre>{TelegramUtils.Escape(ex.ToString())}</pre>",
-                        ParseMode.Html, cancellationToken: ct);
-                }
+        private Task ReportError(string text, CancellationToken ct) => ReportError(text, null, ct);
+        private async Task ReportError(string text, int? messageId, CancellationToken ct)
+        {
+            if (_chatOptions.SendErrorsTo == null)
+                return;
+
+            try
+            {
+                await _telegram.SendTextMessageAsync(_chatOptions.SendErrorsTo, text, ParseMode.Html, cancellationToken: ct);
+                if (messageId != null)
+                    await _telegram.ForwardMessageAsync(_chatOptions.SendErrorsTo, _chatOptions.TelegramChatId, messageId.Value, false, false, ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error reporting error");
             }
         }
 

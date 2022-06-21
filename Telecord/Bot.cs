@@ -9,7 +9,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Telecord.Options;
 using Telegram.Bot;
-using Telegram.Bot.Args;
 using Telegram.Bot.Exceptions;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
@@ -50,8 +49,6 @@ namespace Telecord
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            _telegram.OnMessage += (s, e) => OnTelegram(e, ct);
-            _telegram.OnCallbackQuery += (s, e) => OnTelegramCallback(e, ct);
             _discord.MessageReceived += m => OnDiscord(m, ct);
 
             _logger.LogDebug("Connecting");
@@ -63,7 +60,10 @@ namespace Telecord
             await EnsureDiscordConnected();
 
             _telegramBotName = (await getMe).Username;
-            _telegram.StartReceiving(null, ct);
+            _telegram.StartReceiving(
+                (_, u, ct) => OnTelegramUpdate(u, ct),
+                (_, ex, ct) => OnTelegramPollError(ex, ct),
+                cancellationToken: ct);
 
             try
             {
@@ -72,17 +72,26 @@ namespace Telecord
             }
             catch (TaskCanceledException)
             {
-                _telegram.StopReceiving();
+                await _telegram.CloseAsync(ct);
                 await _discord.StopAsync();
                 _logger.LogDebug("Disconnected");
                 throw;
             }
         }
 
-        private async void OnTelegram(MessageEventArgs e, CancellationToken ct)
+        private async Task OnTelegramUpdate(Update e, CancellationToken ct)
         {
             try
             {
+                if (e.Type == UpdateType.CallbackQuery)
+                {
+                    OnTelegramCallback(e.CallbackQuery, ct);
+                    return;
+                }
+
+                if (e.Type != UpdateType.Message)
+                    return;
+
                 if (e.Message.Chat.Type == ChatType.Private)
                 {
                     await OnTelegramDm(e.Message, ct);
@@ -102,52 +111,57 @@ namespace Telecord
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error sending #{e.Message.MessageId}");
+                _logger.LogError(ex, $"Error sending #{e?.Message.MessageId}");
 
                 if (_chatOptions.SendErrorsTo != null)
                 {
                     await _telegram.SendTextMessageAsync(_chatOptions.SendErrorsTo,
                         $"Id: {e.Message.MessageId}\n<pre>{TelegramUtils.Escape(ex.ToString())}</pre>",
                         ParseMode.Html, cancellationToken: ct);
-                    await _telegram.ForwardMessageAsync(_chatOptions.SendErrorsTo, _chatOptions.TelegramChatId, e.Message.MessageId, false, ct);
+                    await _telegram.ForwardMessageAsync(_chatOptions.SendErrorsTo, _chatOptions.TelegramChatId, e.Message.MessageId, false, false, ct);
                 }
             }
         }
 
-        private async void OnTelegramCallback(CallbackQueryEventArgs e, CancellationToken ct)
+        private async Task OnTelegramPollError(Exception ex, CancellationToken ct)
+        {
+            _logger.LogError(ex, $"Error during polling");
+        }
+
+        private async void OnTelegramCallback(CallbackQuery query, CancellationToken ct)
         {
             try
             {
-                var spoilerId = e.CallbackQuery.Data;
+                var spoilerId = query.Data;
                 var (dmsg, text) = await ReadSpoiler(spoilerId);
 
                 if (text.Length > 200)
                 {
                     try
                     {
-                        _logger.LogDebug($"sending spoiler {spoilerId} to {e.CallbackQuery.From.GetName()} via DM");
-                        await SendSpoilerAsDm(e.CallbackQuery.From.Id, dmsg, text, ct);
+                        _logger.LogDebug($"sending spoiler {spoilerId} to {query.From.GetName()} via DM");
+                        await SendSpoilerAsDm(query.From.Id, dmsg, text, ct);
                     }
-                    catch (ChatNotInitiatedException)
+                    catch (ApiRequestException ex) when (ex.ErrorCode == 403)
                     {
-                        _logger.LogDebug($"user {e.CallbackQuery.From.GetName()} hasn't started the conversation yet, deeplinking instead");
+                        _logger.LogDebug($"user {query.From.GetName()} hasn't started the conversation yet, deeplinking instead");
                     }
-                    await _telegram.AnswerCallbackQueryAsync(e.CallbackQuery.Id, url: $"t.me/{_telegramBotName}?start={spoilerId}", cancellationToken: ct);
+                    await _telegram.AnswerCallbackQueryAsync(query.Id, url: $"t.me/{_telegramBotName}?start={spoilerId}", cancellationToken: ct);
                 }
                 else
                 {
-                    _logger.LogDebug($"showing spoiler {spoilerId} to {e.CallbackQuery.From.GetName()}");
-                    await _telegram.AnswerCallbackQueryAsync(e.CallbackQuery.Id, text, true, cancellationToken: ct);
+                    _logger.LogDebug($"showing spoiler {spoilerId} to {query.From.GetName()}");
+                    await _telegram.AnswerCallbackQueryAsync(query.Id, text, true, cancellationToken: ct);
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error showing spoiler for #{e.CallbackQuery.Data}");
+                _logger.LogError(ex, $"Error showing spoiler for #{query.Data}");
 
                 if (_chatOptions.SendErrorsTo != null)
                 {
                     await _telegram.SendTextMessageAsync(_chatOptions.SendErrorsTo,
-                        $"Id: {e.CallbackQuery.Data}\n<pre>{TelegramUtils.Escape(ex.ToString())}</pre>",
+                        $"Id: {query.Data}\n<pre>{TelegramUtils.Escape(ex.ToString())}</pre>",
                         ParseMode.Html, cancellationToken: ct);
                 }
             }
@@ -203,7 +217,7 @@ namespace Telecord
 
                 _logger.LogDebug($"sending #{msg.Id} to telegram from {msg.Author.Username}");
 
-                await new DiscordMessageReader(msg).Read(_discord).SendAsync(_telegram, _chatOptions.TelegramChatId, msg.Id, ct);
+                await new DiscordMessageReader(msg).Read(_discord).SendAsync(_telegram, _chatOptions.TelegramChatId, ct);
             }
             catch (Exception ex)
             {

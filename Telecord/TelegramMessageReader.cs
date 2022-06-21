@@ -18,6 +18,7 @@ namespace Telecord
             [MessageEntityType.Strikethrough] = "~~",
             [MessageEntityType.Code] = "``",
             [MessageEntityType.Pre] = "```",
+            [MessageEntityType.Spoiler] = "||",
 
             [MessageEntityType.Mention] = null,
             [MessageEntityType.BotCommand] = null,

@@ -4,7 +4,6 @@ using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.InputFiles;
-using Telegram.Bot.Types.ReplyMarkups;
 
 namespace Telecord
 {
@@ -13,7 +12,6 @@ namespace Telecord
         private readonly string _from;
 
         private string _text;
-        private int _plainTextLen;
         private string _url;
         private bool _hidePreview;
 
@@ -22,10 +20,10 @@ namespace Telecord
             _from = from;
         }
 
-        public void SetText(string text, int plainTextLen)
+        public void SetText(string text, string plainText)
         {
             _text = text;
-            _plainTextLen = plainTextLen;
+            PlainText = plainText;
         }
 
         public void AppendUrl(string url)
@@ -43,30 +41,26 @@ namespace Telecord
             _url = url;
         }
 
-        public string Spoiler { get; set; }
-
         public void HidePreview()
         {
             _hidePreview = true;
         }
 
-        public async Task SendAsync(TelegramBotClient telegram, ChatId chatId, ulong discordMessageId, CancellationToken ct)
+        public async Task SendAsync(TelegramBotClient telegram, ChatId chatId, CancellationToken ct)
         {
-            IReplyMarkup reply = null;
-            if (Spoiler != null)
-                reply = new InlineKeyboardMarkup(InlineKeyboardButton.WithCallbackData("Показать спойлер", discordMessageId.ToString()));
-
             if (_url != null)
-                await telegram.SendPhotoAsync(chatId, new InputOnlineFile(_url), GetText(), ParseMode.Html, replyMarkup: reply, cancellationToken: ct);
+                await telegram.SendPhotoAsync(chatId, new InputOnlineFile(_url), GetText(), ParseMode.Html, cancellationToken: ct);
             else
-                await telegram.SendTextMessageAsync(chatId, GetText(), ParseMode.Html, disableWebPagePreview: _hidePreview, replyMarkup: reply, cancellationToken: ct);
+                await telegram.SendTextMessageAsync(chatId, GetText(), ParseMode.Html, disableWebPagePreview: _hidePreview, cancellationToken: ct);
         }
 
         public string GetText()
         {
             var text = $"<b>{_from}</b>:";
-            text += _text.Contains("\n") || _plainTextLen + _from.Length + 2 >= 60 ? "\n" : " ";
+            text += _text.Contains("\n") || PlainText.Length + _from.Length + 2 >= 60 ? "\n" : " ";
             return text + _text;
         }
+
+        public string PlainText { get; private set; }
     }
 }

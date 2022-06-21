@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Linq;
 using Discord;
 using Discord.WebSocket;
@@ -11,8 +10,6 @@ namespace Telecord
 
     public class DiscordMessageReader
     {
-        private static readonly Regex SpoilerRegex = new Regex(@"\S");
-
         private readonly IMessage _message;
         private readonly DiscordParser _parser = new DiscordParser();
 
@@ -31,9 +28,14 @@ namespace Telecord
             return message;
         }
 
+        /// <summary>
+        /// Returns plain-text version of the message to show the spoiler text. Only used for
+        /// old-style spoilers for backwards compatibility in case somebody still clicks
+        /// the "Show spoiler" button on an old message
+        /// </summary>
         public string ReadSpoiler(DiscordSocketClient discord)
         {
-            return ReadMessage(discord).Spoiler;
+            return ReadMessage(discord).PlainText;
         }
 
         private TelegramMessage ReadMessage(DiscordSocketClient discord)
@@ -53,12 +55,9 @@ namespace Telecord
             }
 
             private readonly StringBuilder _builder = new StringBuilder();
-            private readonly StringBuilder _spoilerBuilder = new StringBuilder();
-            private int _plainTextLen;
-            private DiscordSocketClient _discord;
+            private readonly StringBuilder _plainTextBuilder = new StringBuilder();
+            private readonly DiscordSocketClient _discord;
             private readonly TelegramMessage _message;
-            private bool _inSpoiler;
-            private bool _hasSpoiler;
 
             public HtmlVisitor(DiscordSocketClient discord, TelegramMessage message)
             {
@@ -68,8 +67,7 @@ namespace Telecord
 
             private void UpdateMessage()
             {
-                _message.SetText(_builder.ToString(), _plainTextLen);
-                _message.Spoiler = _hasSpoiler ? _spoilerBuilder.ToString() : null;
+                _message.SetText(_builder.ToString(), _plainTextBuilder.ToString());
             }
 
             public override Node VisitChannel(ChannelNode channel)
@@ -145,23 +143,12 @@ namespace Telecord
                     Style.Underline => VisitTag("u"),
                     Style.BlockQuote => VisitTag("pre"),
                     Style.InlineCode => VisitTag("code"),
-                    Style.Spoiler => VisitSpoiler(style),
+                    Style.Spoiler => Visit(() => base.VisitStyle(style), "<span class=\"tg-spoiler\">", "</span>"),
 
                     _ => throw new ArgumentException($"Unknown style: {style}"),
                 };
 
                 Node VisitTag(string tag) => Visit(() => base.VisitStyle(style), $"<{tag}>", $"</{tag}>");
-            }
-
-            private Node VisitSpoiler(StyleNode style)
-            {
-                _hasSpoiler = true;
-
-                _inSpoiler = true;
-                var node = base.VisitStyle(style);
-                _inSpoiler = false;
-
-                return node;
             }
 
             private Node Visit(Func<Node> visitNode, string open, string close)
@@ -180,24 +167,15 @@ namespace Telecord
 
             private void Text(string text)
             {
-                _plainTextLen += text.Length;
-
-                if (_inSpoiler)
-                    _builder.Append(SpoilerRegex.Replace(text, "█"));
-
                 text = TelegramUtils.Escape(text).Replace("\u200b", "");
 
-                _spoilerBuilder.Append(text);
-
-                if (!_inSpoiler)
-                    _builder.Append(text);
+                _plainTextBuilder.Append(text);
+                _builder.Append(text);
             }
-
 
             private void Markup(string text)
             {
-                if (!_inSpoiler)
-                   _builder.Append(text);
+                _builder.Append(text);
             }
         }
     }

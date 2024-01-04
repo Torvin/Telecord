@@ -67,6 +67,14 @@ namespace Telecord.Tests
         }
 
         [Fact]
+        public void CustomEmoji()
+        {
+            Expect("123\U0001f972456",
+                new MessageEntity { Offset = 3, Length = 2, Type = MessageEntityType.CustomEmoji, CustomEmojiId = "5422352101885882552" }
+            ).ToBe("123\U0001f972456");
+        }
+
+        [Fact]
         public void LinkSpaceLifting()
         {
             Expect(" please click here ",

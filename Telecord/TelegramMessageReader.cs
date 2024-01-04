@@ -27,6 +27,7 @@ namespace Telecord
             [MessageEntityType.Hashtag] = null,
             [MessageEntityType.PhoneNumber] = null,
             [MessageEntityType.Url] = null,
+            [MessageEntityType.CustomEmoji] = null,
         };
 
         private static readonly MessageEntityType[] NoSpaceLifting = { MessageEntityType.Pre, MessageEntityType.Code };

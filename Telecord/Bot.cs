@@ -181,7 +181,7 @@ namespace Telecord
 
         private async Task SendSpoilerAsDm(ChatId chatId, IMessage dmsg, string text, CancellationToken ct)
         {
-            await _telegram.SendTextMessageAsync(chatId, $"<b>{dmsg.Author.Username}</b>:\n{text}", ParseMode.Html, cancellationToken: ct);
+            await _telegram.SendTextMessageAsync(chatId, $"<b>{dmsg.Author.Username}</b>:\n{text}", null, ParseMode.Html, cancellationToken: ct);
         }
 
         private async Task<(IMessage, string)> ReadSpoiler(string id)
@@ -221,9 +221,9 @@ namespace Telecord
 
             try
             {
-                await _telegram.SendTextMessageAsync(_chatOptions.SendErrorsTo, text, ParseMode.Html, cancellationToken: ct);
+                await _telegram.SendTextMessageAsync(_chatOptions.SendErrorsTo, text, null, ParseMode.Html, cancellationToken: ct);
                 if (messageId != null)
-                    await _telegram.ForwardMessageAsync(_chatOptions.SendErrorsTo, _chatOptions.TelegramChatId, messageId.Value, false, false, ct);
+                    await _telegram.ForwardMessageAsync(_chatOptions.SendErrorsTo, _chatOptions.TelegramChatId, messageId.Value, null, false, false, ct);
             }
             catch (Exception ex)
             {

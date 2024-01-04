@@ -3,7 +3,6 @@ using System.Threading.Tasks;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
-using Telegram.Bot.Types.InputFiles;
 
 namespace Telecord
 {
@@ -49,9 +48,9 @@ namespace Telecord
         public async Task SendAsync(TelegramBotClient telegram, ChatId chatId, CancellationToken ct)
         {
             if (_url != null)
-                await telegram.SendPhotoAsync(chatId, new InputOnlineFile(_url), GetText(), ParseMode.Html, cancellationToken: ct);
+                await telegram.SendPhotoAsync(chatId, new InputFileUrl(_url), null, GetText(), ParseMode.Html, cancellationToken: ct);
             else
-                await telegram.SendTextMessageAsync(chatId, GetText(), ParseMode.Html, disableWebPagePreview: _hidePreview, cancellationToken: ct);
+                await telegram.SendTextMessageAsync(chatId, GetText(), null, ParseMode.Html, disableWebPagePreview: _hidePreview, cancellationToken: ct);
         }
 
         public string GetText()

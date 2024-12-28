@@ -70,7 +70,7 @@ namespace Telecord
 
             var name = GetParam(query, "name");
             if (name != null)
-                context.Response.Headers.Add("Content-Disposition", $@"attachment; filename=""{name}""");
+                context.Response.Headers.Append("Content-Disposition", $@"attachment; filename=""{name}""");
 
             using var content = await response.Content.ReadAsStreamAsync();
 

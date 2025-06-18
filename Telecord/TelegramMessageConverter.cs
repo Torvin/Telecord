@@ -77,6 +77,10 @@ namespace Telecord
             {
                 link = "Video: " + _getFileUrl(message.VideoNote.FileId, ".mp4");
             }
+            else if (message.Video != null)
+            {
+                link = "Video: " + _getFileUrl(message.Video.FileId, ".mp4");
+            }
             else if (message.Document != null)
             {
                 var doc = message.Document;

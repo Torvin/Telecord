@@ -103,18 +103,19 @@ namespace DiscordParser.Tests
         public void Quotes()
         {
             Test("> text > here", "<blockquote>text &gt; here</blockquote>");
-            Test("> text\nhere", "<blockquote>text\n</blockquote>here");
+            Test("> text\nhere", "<blockquote>text</blockquote>\nhere");
             Test(">text", "&gt;text");
             Test("outside\n>>> inside\ntext\n> here\ndoes not end", "outside\n<blockquote>inside\ntext\n&gt; here\ndoes not end</blockquote>");
             Test(">>> test\n```js\ncode```", "<blockquote>test\n<pre><code class=\"hljs js\">code</code></pre></blockquote>");
             Test("> text\n> \n> here", "<blockquote>text\n\nhere</blockquote>");
             Test(">>> text\nhere\n\n123", "<blockquote>text\nhere\n\n123</blockquote>");
+            Test("> text\nhere\n\n123", "<blockquote>text</blockquote>\nhere\n\n123");
         }
 
         [Fact]
         public void BoldInQuote()
         {
-            Test("> **bold**\nend", "<blockquote><strong>bold</strong>\n</blockquote>end");
+            Test("> **bold**\nend", "<blockquote><strong>bold</strong></blockquote>\nend");
             Test(">>> **bold**\nend", "<blockquote><strong>bold</strong>\nend</blockquote>");
         }
 

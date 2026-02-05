@@ -42,7 +42,7 @@ namespace DiscordParser
             },
 
             // blockquote
-            new Rule(new Regex(@"^( *>>> +([\s\S]*))|^( *>(?!>>) +[^\n]*(\n *>(?!>>) +[^\n]*)*\n?)"))
+            new Rule(new Regex(@"^( *>>> +([\s\S]*))|^( *>(?!>>) +[^\n]*(\n *>(?!>>) +[^\n]*)*)"))
             {
                 Match = (text, parser, state, match) => !PreBlockQuote.IsMatch(state.LastMatch?.Value ?? "") || state.InQuote || state.Nested ? null : match(text),
                 Parse = (parser, state) =>

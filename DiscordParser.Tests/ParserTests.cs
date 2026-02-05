@@ -1,5 +1,4 @@
-﻿using System;
-using Xunit;
+﻿using Xunit;
 
 namespace DiscordParser.Tests
 {
@@ -109,6 +108,7 @@ namespace DiscordParser.Tests
             Test("outside\n>>> inside\ntext\n> here\ndoes not end", "outside\n<blockquote>inside\ntext\n&gt; here\ndoes not end</blockquote>");
             Test(">>> test\n```js\ncode```", "<blockquote>test\n<pre><code class=\"hljs js\">code</code></pre></blockquote>");
             Test("> text\n> \n> here", "<blockquote>text\n\nhere</blockquote>");
+            Test(">>> text\nhere\n\n123", "<blockquote>text\nhere\n\n123</blockquote>");
         }
 
         [Fact]

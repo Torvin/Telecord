@@ -52,7 +52,7 @@ namespace Telecord
                 return;
             }
 
-            var file = await _telegram.GetFileAsync(fileId);
+            var file = await _telegram.GetFile(fileId);
             using var response = await _httpClient.GetAsync($"https://api.telegram.org/file/bot{_tokens.Telegram}/{file.FilePath}");
 
             context.Response.StatusCode = (int)response.StatusCode;

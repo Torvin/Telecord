@@ -141,7 +141,7 @@ namespace Telecord
                     Style.MultiMono => VisitTag("pre"),
                     Style.Strikethru => VisitTag("del"),
                     Style.Underline => VisitTag("u"),
-                    Style.BlockQuote => VisitTag("pre"),
+                    Style.BlockQuote => VisitTag("blockquote"),
                     Style.InlineCode => VisitTag("code"),
                     Style.Spoiler => Visit(() => base.VisitStyle(style), "<span class=\"tg-spoiler\">", "</span>"),
 

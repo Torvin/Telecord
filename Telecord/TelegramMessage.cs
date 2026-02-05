@@ -48,9 +48,9 @@ namespace Telecord
         public async Task SendAsync(TelegramBotClient telegram, ChatId chatId, CancellationToken ct)
         {
             if (_url != null)
-                await telegram.SendPhotoAsync(chatId, new InputFileUrl(_url), null, GetText(), ParseMode.Html, cancellationToken: ct);
+                await telegram.SendPhoto(chatId, new InputFileUrl(_url), GetText(), ParseMode.Html, cancellationToken: ct);
             else
-                await telegram.SendTextMessageAsync(chatId, GetText(), null, ParseMode.Html, disableWebPagePreview: _hidePreview, cancellationToken: ct);
+                await telegram.SendMessage(chatId, GetText(), parseMode: ParseMode.Html, linkPreviewOptions: _hidePreview, cancellationToken: ct);
         }
 
         public string GetText()

@@ -130,6 +130,15 @@ namespace Telecord
                         writer.Text(EscapeBacktickRegex.Replace(str.ToString(), "`\u200b"));
                         return;
                     }
+
+                    if (top.Type == MessageEntityType.Blockquote)
+                    {
+                        writer.Text(string.Join("\n",
+                            str.ToString()
+                                .Split('\n')
+                                .Select((line, index) => (index > 0 ? "> " : "") + DiscordUtils.Escape(line))));
+                        return;
+                    }
                 }
 
                 writer.Text(DiscordUtils.Escape(str.ToString()));
@@ -165,6 +174,10 @@ namespace Telecord
                     case MessageEntityType.TextMention:
                         if (final) writer.Start("\\@");
                         return;
+
+                    case MessageEntityType.Blockquote:
+                        writer.Start("> ");
+                        return;
                 }
 
                 throw new ArgumentOutOfRangeException($"Unknown entity type: {entity.Type}");
@@ -191,6 +204,9 @@ namespace Telecord
                         if (final) writer.End("");
                         return;
 
+                    case MessageEntityType.Blockquote:
+                        writer.End("");
+                        return;
                 }
 
                 throw new ArgumentOutOfRangeException($"Unknown entity type: {entity.Type}");

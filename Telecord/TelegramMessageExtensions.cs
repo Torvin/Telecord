@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using System.Linq;
 using Telegram.Bot.Types;
 
 namespace Telecord
@@ -43,7 +40,7 @@ namespace Telecord
 
         public static (string text, MessageEntity[] entities) GetTextAndEntities(this Message message)
         {
-            return (message.Text ?? message.Caption, message.Entities ?? message.CaptionEntities ?? new MessageEntity[0]);
+            return (message.Text ?? message.Caption, message.Entities ?? message.CaptionEntities ?? []);
         }
 
         public static string GetName(this User user)
